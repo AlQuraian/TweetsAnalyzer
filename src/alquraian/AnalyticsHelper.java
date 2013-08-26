@@ -1,7 +1,6 @@
 package alquraian;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -39,32 +38,48 @@ public final class AnalyticsHelper {
 
 	public static void printMostCommonHashTags(
 			final Map<String, Integer> hashTags, final int topCount) {
-		final Collection<Integer> values = hashTags.values();
-		values.remove(1);
-
-		int mostCommon = 0;
+		int mostCommonCount = 0;
+		List<String> currentListToPrint = new ArrayList<String>();
 
 		// Get the most common hashtag's count
 		for (String tag : hashTags.keySet()) {
-			if (hashTags.get(tag) > mostCommon) {
-				mostCommon = hashTags.get(tag);
+			if (hashTags.get(tag) > mostCommonCount) {
+				mostCommonCount = hashTags.get(tag);
 			}
 		}
 
-		if (mostCommon < 2) {
+		// Only show tags mentioned more than once
+		if (mostCommonCount < 2) {
 			return;
 		}
 
-		System.out.println("Most common tags are:");
+		System.out.println("Top " + topCount + " common tags are:");
 
-		for (int i = mostCommon; i > 1; i--) {
+		int topCounter = 0;
+		for (int i = mostCommonCount; i > 1; i--) {
+			if (!hashTags.values().contains(i)) {
+				continue;
+			}
+
+			if (topCounter++ == topCount) {
+				return;
+			}
+
+			System.out.println("Hashtags mentioned " + i + " times:");
 			for (String tag : hashTags.keySet()) {
 				if (hashTags.get(tag).equals(i)) {
-					System.out.println(tag + " mentioned " + hashTags.get(tag)
-							+ " times.");
+					currentListToPrint.add(tag);
 				}
 			}
+			System.out.println(currentListToPrint);
+			currentListToPrint.clear();
 		}
+
+	}
+
+	public static void printTopRetweeted(final List<Status> statuses,
+			final int topCount) {
+		// TODO Auto-generated method stub
 
 	}
 }

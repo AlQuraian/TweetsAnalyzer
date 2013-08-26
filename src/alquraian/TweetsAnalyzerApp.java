@@ -47,16 +47,17 @@ public class TweetsAnalyzerApp {
 	private static void startAnalyzer(final String user, final int howManyTweets) {
 		// The factory instance is re-useable and thread safe.
 		final Twitter twitter = TwitterFactory.getSingleton();
-		final HashMap<String, Integer> hashTagsCount = new HashMap<String, Integer>();
+		final HashMap<String, Integer> hashTagsWithCount = new HashMap<String, Integer>();
 		final Paging paging = new Paging(1, howManyTweets);
 
 		try {
 			final List<Status> statuses = twitter.getUserTimeline(user, paging);
 
-			System.out.println("Showing @" + user + "'s timeline.");
+			AnalyticsHelper.printTopRetweeted(statuses, 5);
 
-			hashTagsCount.putAll(AnalyticsHelper.updateCount(statuses));
-			AnalyticsHelper.printMostCommonHashTags(hashTagsCount, 10);
+			// Extract hashtags and print most common
+			hashTagsWithCount.putAll(AnalyticsHelper.updateCount(statuses));
+			AnalyticsHelper.printMostCommonHashTags(hashTagsWithCount, 5);
 
 		} catch (TwitterException te) {
 			te.printStackTrace();
