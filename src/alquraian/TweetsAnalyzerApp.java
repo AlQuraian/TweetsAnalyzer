@@ -126,7 +126,7 @@ public class TweetsAnalyzerApp {
 	}
 
 	/**
-	 * If the text equals 'exit' then exity of the app, ealse return same string
+	 * If the text equals 'exit' then exit of the app, ealse return same string
 	 */
 	private static String shouldExit(String input) {
 		if (input.equalsIgnoreCase("exit")) {
