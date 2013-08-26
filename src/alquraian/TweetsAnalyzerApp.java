@@ -79,31 +79,6 @@ public class TweetsAnalyzerApp {
 			printDecorativeLine();
 			AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
 
-			// final List<Status> statusesByUser = new ArrayList<Status>();
-			//
-			// for (Status status : statuses) {
-			// if (!status.isRetweet()) {
-			// statusesByUser.add(status);
-			// }
-			// }
-			// if (!statusesByUser.isEmpty()) {
-			// System.out.println("\n");
-			// printDecorativeLine();
-			// System.out.println("Top " + TOP_COUNT
-			// + " retweeted: (Tweeted Originally By "
-			// + user.getScreenName() + ")");
-			// printDecorativeLine();
-			// AnalyticsHelper.printTopRetweeted(statuses, TOP_COUNT);
-			//
-			// System.out.println("\n");
-			// printDecorativeLine();
-			// System.out.println("Top " + TOP_COUNT
-			// + " hashtags are: (Tweeted  Originally By "
-			// + user.getScreenName() + ")");
-			// printDecorativeLine();
-			// AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
-			// }
-
 		} catch (TwitterException te) {
 			te.printStackTrace();
 			System.out.println("Failed to get timeline: " + te.getMessage());

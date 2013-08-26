@@ -12,41 +12,19 @@ public final class AnalyticsHelper {
 
 	public static void printTopRetweeted(final List<Status> statuses,
 			final int topCount) {
-		List<Status> mostCommon = new ArrayList<Status>();
-
-		final Map<Status, Long> retweetsCount = new HashMap<Status, Long>(
+		// List<Status> mostCommon = new ArrayList<Status>();
+		final Map<Status, Long> statucCount = new HashMap<Status, Long>(
 				updateRetweetCount(statuses));
 
-		long mostCommonCount = 0;
-		for (Status status : retweetsCount.keySet()) {
-			if (retweetsCount.get(status) > mostCommonCount) {
-				mostCommonCount = retweetsCount.get(status);
-			}
+		final Map<String, Long> retweetsCount = new HashMap<String, Long>();
+		for (Status status : statucCount.keySet()) {
+			retweetsCount.put(status.getText(), statucCount.get(status));
 		}
+		List<String> mostCommon = getMostCommon(retweetsCount, topCount);
 
-		int topCounter = 0;
-		for (long i = mostCommonCount; i > 1; i--) {
-			if (!retweetsCount.values().contains(i)) {
-				continue;
-			}
-
-			if (topCounter++ == topCount) {
-				return;
-			}
-
-			for (Status tag : retweetsCount.keySet()) {
-				if (retweetsCount.get(tag).equals(i)) {
-					mostCommon.add(tag);
-				}
-			}
-
-			for (Status status : mostCommon) {
-				System.out.println("[" + status.getText() + "]"
-						+ "\nRetweeted " + retweetsCount.get(status)
-						+ " times.\n");
-			}
-
-			mostCommon.clear();
+		for (String status : mostCommon) {
+			System.out.println("[" + status + "]" + "\nRetweeted "
+					+ retweetsCount.get(status) + " times.\n");
 		}
 	}
 
@@ -128,43 +106,55 @@ public final class AnalyticsHelper {
 	}
 
 	public static void printTopMentioned(List<Status> statuses, int topCount) {
-		Map<String, Integer> usersMentioned = updateMentionsCount(statuses);
+		Map<String, Long> usersMentioned = updateMentionsCount(statuses);
 		List<String> mostCommon = new ArrayList<String>();
 
-		int mostCommonCount = 0;
-		for (String user : usersMentioned.keySet()) {
-			if (usersMentioned.get(user) > mostCommonCount) {
-				mostCommonCount = usersMentioned.get(user);
+		mostCommon = getMostCommon(usersMentioned, topCount);
+
+		long mentionsCounter = 0;
+
+		for (String user : mostCommon) {
+			if (usersMentioned.get(user) != mentionsCounter) {
+				mentionsCounter = usersMentioned.get(user);
+				System.out.println("Users mentioned " + mentionsCounter
+						+ " times:");
+			}
+			System.out.println("@" + user);
+		}
+	}
+
+	private static List<String> getMostCommon(Map<String, Long> map,
+			int topCount) {
+		long mostCommonCount = 0;
+		List<String> mostCommon = new ArrayList<String>();
+		for (String user : map.keySet()) {
+			if (map.get(user) > mostCommonCount) {
+				mostCommonCount = map.get(user);
 			}
 		}
 
 		int topCounter = 0;
-		for (int i = mostCommonCount; i > 1; i--) {
-			if (!usersMentioned.values().contains(i)) {
+		for (long i = mostCommonCount; i > 1; i--) {
+			if (!map.values().contains(i)) {
 				continue;
 			}
 
 			if (topCounter++ == topCount) {
-				return;
+				break;
 			}
 
-			for (String user : usersMentioned.keySet()) {
-				if (usersMentioned.get(user).equals(i)) {
+			for (String user : map.keySet()) {
+				if (map.get(user).equals(i)) {
 					mostCommon.add(user);
 				}
 			}
-
-			for (String user : mostCommon) {
-				System.out.println("@" + user + " was mentioned "
-						+ usersMentioned.get(user) + " times.");
-			}
-			mostCommon.clear();
 		}
+		return mostCommon;
 	}
 
-	private static Map<String, Integer> updateMentionsCount(
+	private static Map<String, Long> updateMentionsCount(
 			final List<Status> statuses) {
-		Map<String, Integer> counterMap = new HashMap<String, Integer>();
+		Map<String, Long> counterMap = new HashMap<String, Long>();
 		UserMentionEntity[] users;
 
 		for (Status status : statuses) {
