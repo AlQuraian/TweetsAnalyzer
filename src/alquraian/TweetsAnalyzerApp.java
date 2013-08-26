@@ -3,7 +3,6 @@ package alquraian;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.util.HashMap;
 import java.util.List;
 
 import twitter4j.Paging;
@@ -11,9 +10,12 @@ import twitter4j.Status;
 import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
+import twitter4j.User;
 
 public class TweetsAnalyzerApp {
 	static boolean toContinue = true;
+	// The factory instance is re-useable and thread safe.
+	final static Twitter twitter = TwitterFactory.getSingleton();
 
 	public static void main(String[] args) {
 		printDecorativeLine();
@@ -22,19 +24,26 @@ public class TweetsAnalyzerApp {
 		printDecorativeLine();
 		System.out.println("\n");
 
-		String user = "";
+		String screenName = "";
+		User user = null;
 		int howManyTweets = 0;
 
 		while (toContinue) {
-			System.out.print("Username that you want to analyze: @");
-			// user = readUsername();
-			user = "AJALive";
+			System.out.print("Username to analyze: @");
+			screenName = readUsername();
+			// screenName = "AJALive";
+			try {
+				user = twitter.showUser(screenName);
+			} catch (TwitterException e) {
+				e.printStackTrace();
+				System.exit(-1);
+			}
 			howManyTweets = readHowManyTweets();
 
-			System.out.println("User: " + user + ", fetching " + howManyTweets
-					+ " tweets.");
+			System.out.println("User: " + "@" + user.getScreenName()
+					+ ", fetching " + howManyTweets + " tweets.");
 
-			if (!user.isEmpty() && howManyTweets > 0) {
+			if (!screenName.isEmpty() && howManyTweets > 0) {
 				startAnalyzer(user, howManyTweets);
 			}
 
@@ -44,20 +53,56 @@ public class TweetsAnalyzerApp {
 		printExitMessage();
 	}
 
-	private static void startAnalyzer(final String user, final int howManyTweets) {
-		// The factory instance is re-useable and thread safe.
-		final Twitter twitter = TwitterFactory.getSingleton();
-		final HashMap<String, Integer> hashTagsWithCount = new HashMap<String, Integer>();
+	private static void startAnalyzer(final User user, final int howManyTweets) {
 		final Paging paging = new Paging(1, howManyTweets);
+		final int TOP_COUNT = 5;
 
 		try {
-			final List<Status> statuses = twitter.getUserTimeline(user, paging);
+			final List<Status> statuses = twitter.getUserTimeline(
+					user.getScreenName(), paging);
 
-			AnalyticsHelper.printTopRetweeted(statuses, 5);
+			System.out.println("\n");
+			printDecorativeLine();
+			System.out.println("Top " + TOP_COUNT + " mentioned users: ");
+			printDecorativeLine();
+			AnalyticsHelper.printTopMentioned(statuses, TOP_COUNT);
 
-			// Extract hashtags and print most common
-			hashTagsWithCount.putAll(AnalyticsHelper.updateCount(statuses));
-			AnalyticsHelper.printMostCommonHashTags(hashTagsWithCount, 5);
+			System.out.println("\n");
+			printDecorativeLine();
+			System.out.println("Top " + TOP_COUNT + " retweeted: ");
+			printDecorativeLine();
+			AnalyticsHelper.printTopRetweeted(statuses, TOP_COUNT);
+
+			System.out.println("\n");
+			printDecorativeLine();
+			System.out.println("Top " + TOP_COUNT + " hashtags are:");
+			printDecorativeLine();
+			AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
+
+			// final List<Status> statusesByUser = new ArrayList<Status>();
+			//
+			// for (Status status : statuses) {
+			// if (!status.isRetweet()) {
+			// statusesByUser.add(status);
+			// }
+			// }
+			// if (!statusesByUser.isEmpty()) {
+			// System.out.println("\n");
+			// printDecorativeLine();
+			// System.out.println("Top " + TOP_COUNT
+			// + " retweeted: (Tweeted Originally By "
+			// + user.getScreenName() + ")");
+			// printDecorativeLine();
+			// AnalyticsHelper.printTopRetweeted(statuses, TOP_COUNT);
+			//
+			// System.out.println("\n");
+			// printDecorativeLine();
+			// System.out.println("Top " + TOP_COUNT
+			// + " hashtags are: (Tweeted  Originally By "
+			// + user.getScreenName() + ")");
+			// printDecorativeLine();
+			// AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
+			// }
 
 		} catch (TwitterException te) {
 			te.printStackTrace();
@@ -113,7 +158,6 @@ public class TweetsAnalyzerApp {
 		}
 	}
 
-	@SuppressWarnings("unused")
 	private static String readUsername() {
 		String name = "";
 		try {
