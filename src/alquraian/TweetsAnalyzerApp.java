@@ -35,8 +35,8 @@ public class TweetsAnalyzerApp {
 			try {
 				user = twitter.showUser(screenName);
 			} catch (TwitterException e) {
-				e.printStackTrace();
-				System.exit(-1);
+				System.out.println("Please enter a valid name!");
+				continue;
 			}
 			howManyTweets = readHowManyTweets();
 
@@ -61,22 +61,24 @@ public class TweetsAnalyzerApp {
 			final List<Status> statuses = twitter.getUserTimeline(
 					user.getScreenName(), paging);
 
+			// System.out.println(statuses);
+
 			System.out.println("\n");
-			printDecorativeLine();
-			System.out.println("Top " + TOP_COUNT + " mentioned users: ");
-			printDecorativeLine();
+			printٍSmallDecorativeLine();
+			System.out.println("Top " + TOP_COUNT + " mentioned users:");
+			printٍSmallDecorativeLine();
 			AnalyticsHelper.printTopMentioned(statuses, TOP_COUNT);
 
 			System.out.println("\n");
-			printDecorativeLine();
-			System.out.println("Top " + TOP_COUNT + " retweeted: ");
-			printDecorativeLine();
+			printٍSmallDecorativeLine();
+			System.out.println("Top " + TOP_COUNT + " retweeted:");
+			printٍSmallDecorativeLine();
 			AnalyticsHelper.printTopRetweeted(statuses, TOP_COUNT);
 
 			System.out.println("\n");
-			printDecorativeLine();
-			System.out.println("Top " + TOP_COUNT + " hashtags are:");
-			printDecorativeLine();
+			printٍSmallDecorativeLine();
+			System.out.println("Top " + TOP_COUNT + " hashtags:");
+			printٍSmallDecorativeLine();
 			AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
 
 		} catch (TwitterException te) {
@@ -95,6 +97,10 @@ public class TweetsAnalyzerApp {
 			try {
 				howMany = Integer.valueOf(shouldExit(bufferRead.readLine()
 						.trim()));
+				if (howMany < 1) {
+					System.out.print("Please enter a valid number: ");
+					continue;
+				}
 				break;
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -138,7 +144,7 @@ public class TweetsAnalyzerApp {
 		try {
 			BufferedReader bufferRead = new BufferedReader(
 					new InputStreamReader(System.in));
-			name = shouldExit(bufferRead.readLine().trim());
+			name = shouldExit(bufferRead.readLine().trim().split("\\s")[0]);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -167,5 +173,9 @@ public class TweetsAnalyzerApp {
 	private static void printDecorativeLine() {
 		System.out
 				.println("====================================================");
+	}
+
+	private static void printٍSmallDecorativeLine() {
+		System.out.println("--------------------------");
 	}
 }
