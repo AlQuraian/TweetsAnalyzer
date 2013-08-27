@@ -3,6 +3,7 @@ package alquraian;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.UnknownHostException;
 import java.util.List;
 
 import twitter4j.Paging;
@@ -11,11 +12,23 @@ import twitter4j.Twitter;
 import twitter4j.TwitterException;
 import twitter4j.TwitterFactory;
 import twitter4j.User;
+import twitter4j.json.DataObjectFactory;
+
+import com.mongodb.DB;
+import com.mongodb.DBCollection;
+import com.mongodb.DBCursor;
+import com.mongodb.DBObject;
+import com.mongodb.MongoClient;
+import com.mongodb.util.JSON;
 
 public class TweetsAnalyzerApp {
-	static boolean toContinue = true;
 	// The factory instance is re-useable and thread safe.
 	final static Twitter twitter = TwitterFactory.getSingleton();
+	private static final int TOP_COUNT = 5;
+	static MongoClient mongoClient = null;
+	static DB TweetsAnalyzerDB = null;
+	static DBCollection statusesColl = null;
+	static boolean toContinue = true;
 
 	public static void main(String[] args) {
 		printDecorativeLine();
@@ -28,10 +41,19 @@ public class TweetsAnalyzerApp {
 		User user = null;
 		int howManyTweets = 0;
 
+		try {
+			initDatabase();
+			statusesColl.drop();
+			fetchDataFromDB();
+		} catch (UnknownHostException e) {
+			System.out.println("Failed to fetch from database: "
+					+ e.getMessage());
+		}
+
 		while (toContinue) {
 			System.out.print("Username to analyze: @");
-			screenName = readUsername();
-			// screenName = "AJALive";
+			// screenName = readUsername();
+			screenName = "AlQuraian";
 			try {
 				user = twitter.showUser(screenName);
 			} catch (TwitterException e) {
@@ -43,47 +65,99 @@ public class TweetsAnalyzerApp {
 			System.out.println("User: " + "@" + user.getScreenName()
 					+ ", fetching " + howManyTweets + " tweets.");
 
-			if (!screenName.isEmpty() && howManyTweets > 0) {
-				startAnalyzer(user, howManyTweets);
+			try {
+				final Paging paging = new Paging(1, howManyTweets);
+				final List<Status> statuses = twitter.getUserTimeline(
+						user.getScreenName(), paging);
+				startAnalyzer(statuses, howManyTweets);
+				saveToDB(statuses);
+			} catch (TwitterException te) {
+				System.out
+						.println("Failed to get timeline: " + te.getMessage());
+			} catch (UnknownHostException e) {
+				System.out.println("Failed to save to database: "
+						+ e.getMessage());
 			}
 
-			readAndUpdateToContinue();
+			toContinue = confirm("\n\nDo you want to analyse another user's tweets (Y/n)? ");
 		}
 
 		printExitMessage();
 	}
 
-	private static void startAnalyzer(final User user, final int howManyTweets) {
-		final Paging paging = new Paging(1, howManyTweets);
-		final int TOP_COUNT = 5;
+	private static void startAnalyzer(final List<Status> statuses,
+			final int howManyTweets) {
+		System.out.println("Statuses successfully fetched,"
+				+ " saving the data to the database...");
 
-		try {
-			final List<Status> statuses = twitter.getUserTimeline(
-					user.getScreenName(), paging);
+		// System.out.println(statuses);
 
-			// System.out.println(statuses);
+		printSmallMessage(" mentioned users:");
+		AnalyticsHelper.printTopMentioned(statuses, TOP_COUNT);
 
-			System.out.println("\n");
-			printٍSmallDecorativeLine();
-			System.out.println("Top " + TOP_COUNT + " mentioned users:");
-			printٍSmallDecorativeLine();
-			AnalyticsHelper.printTopMentioned(statuses, TOP_COUNT);
+		printSmallMessage(" retweeted:");
+		AnalyticsHelper.printTopRetweeted(statuses, TOP_COUNT);
 
-			System.out.println("\n");
-			printٍSmallDecorativeLine();
-			System.out.println("Top " + TOP_COUNT + " retweeted:");
-			printٍSmallDecorativeLine();
-			AnalyticsHelper.printTopRetweeted(statuses, TOP_COUNT);
+		printSmallMessage(" hashtags:");
+		AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
+	}
 
-			System.out.println("\n");
-			printٍSmallDecorativeLine();
-			System.out.println("Top " + TOP_COUNT + " hashtags:");
-			printٍSmallDecorativeLine();
-			AnalyticsHelper.printMostCommonHashTags(statuses, TOP_COUNT);
+	private static void printSmallMessage(String message) {
+		System.out.println("\n");
+		System.out.println("--------------------------");
+		System.out.println("Top " + TOP_COUNT + message);
+		System.out.println("--------------------------");
+	}
 
-		} catch (TwitterException te) {
-			te.printStackTrace();
-			System.out.println("Failed to get timeline: " + te.getMessage());
+	private static void fetchDataFromDB() throws UnknownHostException {
+		initDatabase();
+		System.out.println("Fetching data from databse...");
+
+		DBCursor cursor = statusesColl.find();
+
+		if (cursor.size() == 0) {
+			System.out.println("Database is empty!");
+			return;
+		}
+
+		System.out.println(cursor.size() + " statuses have been fetched.");
+
+		if (confirm("Do you want to analyse statuses fetched from the database (Y, n)?")) {
+			try {
+				while (cursor.hasNext()) {
+					System.out.println(cursor.next());
+				}
+			} finally {
+				cursor.close();
+			}
+		}
+
+	}
+
+	private static void saveToDB(List<Status> statuses)
+			throws UnknownHostException {
+		initDatabase();
+		String statusRaw = null;
+		for (Status status : statuses) {
+			statusRaw = DataObjectFactory.getRawJSON(statuses.get(0));
+			if (status != null) {
+				DBObject doc = (DBObject) JSON.parse(statusRaw);
+				statusesColl.insert(doc);
+			}
+		}
+	}
+
+	private static void initDatabase() throws UnknownHostException {
+		if (mongoClient == null) {
+			mongoClient = new MongoClient();
+		}
+
+		if (TweetsAnalyzerDB == null) {
+			TweetsAnalyzerDB = mongoClient.getDB("TweetsAnalyzerDatabase");
+
+		}
+		if (statusesColl == null) {
+			statusesColl = TweetsAnalyzerDB.getCollection("statuses");
 		}
 	}
 
@@ -111,11 +185,10 @@ public class TweetsAnalyzerApp {
 		return howMany;
 	}
 
-	private static void readAndUpdateToContinue() {
+	private static boolean confirm(String message) {
 		String yesOrNo = "";
 		while (true) {
-			System.out
-					.print("\n\nDo you want to analyse another user's tweets (Y/n)? ");
+			System.out.print(message);
 			new BufferedReader(new InputStreamReader(System.in));
 			try {
 				BufferedReader bufferRead = new BufferedReader(
@@ -129,12 +202,10 @@ public class TweetsAnalyzerApp {
 			if (yesOrNo.equalsIgnoreCase("yes")
 					|| yesOrNo.equalsIgnoreCase("ye")
 					|| yesOrNo.equalsIgnoreCase("y")) {
-				toContinue = true;
-				break;
+				return true;
 			} else if (yesOrNo.equalsIgnoreCase("no")
 					|| yesOrNo.equalsIgnoreCase("n")) {
-				toContinue = false;
-				break;
+				return false;
 			}
 		}
 	}
@@ -173,9 +244,5 @@ public class TweetsAnalyzerApp {
 	private static void printDecorativeLine() {
 		System.out
 				.println("====================================================");
-	}
-
-	private static void printٍSmallDecorativeLine() {
-		System.out.println("--------------------------");
 	}
 }
