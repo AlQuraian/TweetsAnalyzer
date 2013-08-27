@@ -24,12 +24,12 @@ import com.mongodb.util.JSON;
 
 public class TweetsAnalyzerApp {
 	// The factory instance is re-useable and thread safe.
-	final static Twitter twitter = TwitterFactory.getSingleton();
+	private static final Twitter twitter = TwitterFactory.getSingleton();
 	private static final int TOP_COUNT = 5;
-	static MongoClient mongoClient = null;
-	static DB TweetsAnalyzerDB = null;
-	static DBCollection statusesColl = null;
-	static boolean toContinue = true;
+	private static MongoClient mongoClient = null;
+	private static DB TweetsAnalyzerDB = null;
+	private static DBCollection statusesColl = null;
+	private static boolean toContinue = true;
 
 	public static void main(String[] args) {
 		printDecorativeLine();
@@ -58,7 +58,7 @@ public class TweetsAnalyzerApp {
 				System.out.println("Please enter a valid name!");
 				continue;
 			}
-			howManyTweets = readHowManyTweets();
+			howManyTweets = howManyTweetsToFetch();
 
 			System.out.println("User: " + "@" + user.getScreenName()
 					+ ", fetching " + howManyTweets + " tweets.");
@@ -109,7 +109,6 @@ public class TweetsAnalyzerApp {
 		initDatabase();
 		String statusRaw = null;
 		for (Status status : statuses) {
-			// DBObject doc = (DBObject) JSON.parse(status.toString());
 			statusRaw = DataObjectFactory.getRawJSON(status);
 			if (status != null) {
 				DBObject doc = (DBObject) JSON.parse(statusRaw);
@@ -151,17 +150,15 @@ public class TweetsAnalyzerApp {
 		if (mongoClient == null) {
 			mongoClient = new MongoClient();
 		}
-
 		if (TweetsAnalyzerDB == null) {
 			TweetsAnalyzerDB = mongoClient.getDB("TweetsAnalyzerDatabase");
-
 		}
 		if (statusesColl == null) {
 			statusesColl = TweetsAnalyzerDB.getCollection("statuses");
 		}
 	}
 
-	private static int readHowManyTweets() {
+	private static int howManyTweetsToFetch() {
 		int howMany = 0;
 		System.out.print("How many tweets do you want to fetch? ");
 		BufferedReader bufferRead = new BufferedReader(new InputStreamReader(
@@ -223,7 +220,7 @@ public class TweetsAnalyzerApp {
 	}
 
 	/**
-	 * If the text equals 'exit' then exit of the app, ealse return same string
+	 * If the text equals 'exit' then exit of the app, else return same string
 	 */
 	private static String shouldExit(String input) {
 		if (input.equalsIgnoreCase("exit")) {
