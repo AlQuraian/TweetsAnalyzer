@@ -170,9 +170,4 @@ public final class AnalyticsHelper {
 		}
 		return counterMap;
 	}
-
-	// private static void printDecorativeLine() {
-	// System.out.println("-------------------------------------");
-	// }
-
 }

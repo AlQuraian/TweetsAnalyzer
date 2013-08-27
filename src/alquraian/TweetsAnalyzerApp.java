@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.UnknownHostException;
+import java.util.ArrayList;
 import java.util.List;
 
 import twitter4j.Paging;
@@ -42,8 +43,6 @@ public class TweetsAnalyzerApp {
 		int howManyTweets = 0;
 
 		try {
-			initDatabase();
-			statusesColl.drop();
 			fetchDataFromDB();
 		} catch (UnknownHostException e) {
 			System.out.println("Failed to fetch from database: "
@@ -52,8 +51,7 @@ public class TweetsAnalyzerApp {
 
 		while (toContinue) {
 			System.out.print("Username to analyze: @");
-			// screenName = readUsername();
-			screenName = "AlQuraian";
+			screenName = readUsername();
 			try {
 				user = twitter.showUser(screenName);
 			} catch (TwitterException e) {
@@ -69,7 +67,7 @@ public class TweetsAnalyzerApp {
 				final Paging paging = new Paging(1, howManyTweets);
 				final List<Status> statuses = twitter.getUserTimeline(
 						user.getScreenName(), paging);
-				startAnalyzer(statuses, howManyTweets);
+				analyze(statuses);
 				saveToDB(statuses);
 			} catch (TwitterException te) {
 				System.out
@@ -85,12 +83,9 @@ public class TweetsAnalyzerApp {
 		printExitMessage();
 	}
 
-	private static void startAnalyzer(final List<Status> statuses,
-			final int howManyTweets) {
+	private static void analyze(final List<Status> statuses) {
 		System.out.println("Statuses successfully fetched,"
 				+ " saving the data to the database...");
-
-		// System.out.println(statuses);
 
 		printSmallMessage(" mentioned users:");
 		AnalyticsHelper.printTopMentioned(statuses, TOP_COUNT);
@@ -109,9 +104,23 @@ public class TweetsAnalyzerApp {
 		System.out.println("--------------------------");
 	}
 
+	private static void saveToDB(List<Status> statuses)
+			throws UnknownHostException {
+		initDatabase();
+		String statusRaw = null;
+		for (Status status : statuses) {
+			// DBObject doc = (DBObject) JSON.parse(status.toString());
+			statusRaw = DataObjectFactory.getRawJSON(status);
+			if (status != null) {
+				DBObject doc = (DBObject) JSON.parse(statusRaw);
+				statusesColl.insert(doc);
+			}
+		}
+	}
+
 	private static void fetchDataFromDB() throws UnknownHostException {
 		initDatabase();
-		System.out.println("Fetching data from databse...");
+		System.out.println("Fetching data from database...");
 
 		DBCursor cursor = statusesColl.find();
 
@@ -122,29 +131,20 @@ public class TweetsAnalyzerApp {
 
 		System.out.println(cursor.size() + " statuses have been fetched.");
 
-		if (confirm("Do you want to analyse statuses fetched from the database (Y, n)?")) {
+		if (confirm("Do you want to print statuses fetched from the database (Y, n)?")) {
+			List<Status> statuses = new ArrayList<Status>();
 			try {
 				while (cursor.hasNext()) {
 					System.out.println(cursor.next());
+				}
+				if (!statuses.isEmpty()) {
+					analyze(statuses);
 				}
 			} finally {
 				cursor.close();
 			}
 		}
 
-	}
-
-	private static void saveToDB(List<Status> statuses)
-			throws UnknownHostException {
-		initDatabase();
-		String statusRaw = null;
-		for (Status status : statuses) {
-			statusRaw = DataObjectFactory.getRawJSON(statuses.get(0));
-			if (status != null) {
-				DBObject doc = (DBObject) JSON.parse(statusRaw);
-				statusesColl.insert(doc);
-			}
-		}
 	}
 
 	private static void initDatabase() throws UnknownHostException {

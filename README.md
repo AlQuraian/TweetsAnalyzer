@@ -4,4 +4,5 @@ This is a very simple tweets analyzer app.
 
 Dependencies
 ==================
-    Twitter4j (v3 or newer). http://twitter4j.org
+    twitter4j-core-3.*
+    mongo-java-driver-2.*
