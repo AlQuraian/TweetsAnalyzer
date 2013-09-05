@@ -20,6 +20,7 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoException;
 import com.mongodb.util.JSON;
 
 public class TweetsAnalyzerApp {
@@ -47,6 +48,8 @@ public class TweetsAnalyzerApp {
 		} catch (UnknownHostException e) {
 			System.out.println("Failed to fetch from database: "
 					+ e.getMessage());
+		} catch (MongoException e) {
+			System.out.println("Database is not available!");
 		}
 
 		while (toContinue) {
@@ -75,6 +78,8 @@ public class TweetsAnalyzerApp {
 			} catch (UnknownHostException e) {
 				System.out.println("Failed to save to database: "
 						+ e.getMessage());
+			} catch (MongoException e) {
+				System.out.println("Database is not available!");
 			}
 
 			toContinue = confirm("\n\nDo you want to analyse another user's tweets (Y/n)? ");
@@ -105,7 +110,7 @@ public class TweetsAnalyzerApp {
 	}
 
 	private static void saveToDB(List<Status> statuses)
-			throws UnknownHostException {
+			throws UnknownHostException, MongoException {
 		initDatabase();
 		String statusRaw = null;
 		for (Status status : statuses) {
@@ -117,7 +122,8 @@ public class TweetsAnalyzerApp {
 		}
 	}
 
-	private static void fetchDataFromDB() throws UnknownHostException {
+	private static void fetchDataFromDB() throws UnknownHostException,
+			MongoException {
 		initDatabase();
 		System.out.println("Fetching data from database...");
 
