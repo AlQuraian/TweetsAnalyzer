@@ -28,14 +28,14 @@ public class TweetsAnalyzerApp {
 	private static final Twitter twitter = TwitterFactory.getSingleton();
 	private static final int TOP_COUNT = 5;
 	private static MongoClient mongoClient = null;
-	private static DB TweetsAnalyzerDB = null;
+	private static DB tweetsAnalyzerDB = null;
 	private static DBCollection statusesColl = null;
 	private static boolean toContinue = true;
 
 	public static void main(String[] args) {
 		printDecorativeLine();
 		System.out.println("-- Welcome to TweetsAnalyzer --"
-				+ "Type 'exit' anytime to exit from app.");
+				+ "               Type 'exit' anytime to exit from app.");
 		printDecorativeLine();
 		System.out.println("\n");
 
@@ -44,6 +44,8 @@ public class TweetsAnalyzerApp {
 		int howManyTweets = 0;
 
 		try {
+			initDatabase();
+			System.out.println("Fetching data from database...");
 			fetchDataFromDB();
 		} catch (UnknownHostException e) {
 			System.out.println("Failed to fetch from database: "
@@ -70,7 +72,10 @@ public class TweetsAnalyzerApp {
 				final Paging paging = new Paging(1, howManyTweets);
 				final List<Status> statuses = twitter.getUserTimeline(
 						user.getScreenName(), paging);
+				// System.out.println("Statuses successfully fetched,"
+				// + " saving the data to the database...");
 				analyze(statuses);
+				initDatabase();
 				saveToDB(statuses);
 			} catch (TwitterException te) {
 				System.out
@@ -89,9 +94,6 @@ public class TweetsAnalyzerApp {
 	}
 
 	private static void analyze(final List<Status> statuses) {
-		System.out.println("Statuses successfully fetched,"
-				+ " saving the data to the database...");
-
 		printSmallMessage(" mentioned users:");
 		AnalyticsHelper.printTopMentioned(statuses, TOP_COUNT);
 
@@ -109,9 +111,7 @@ public class TweetsAnalyzerApp {
 		System.out.println("--------------------------");
 	}
 
-	private static void saveToDB(List<Status> statuses)
-			throws UnknownHostException, MongoException {
-		initDatabase();
+	private static void saveToDB(List<Status> statuses) {
 		String statusRaw = null;
 		for (Status status : statuses) {
 			statusRaw = DataObjectFactory.getRawJSON(status);
@@ -122,11 +122,7 @@ public class TweetsAnalyzerApp {
 		}
 	}
 
-	private static void fetchDataFromDB() throws UnknownHostException,
-			MongoException {
-		initDatabase();
-		System.out.println("Fetching data from database...");
-
+	private static void fetchDataFromDB() {
 		DBCursor cursor = statusesColl.find();
 
 		if (cursor.size() == 0) {
@@ -149,18 +145,17 @@ public class TweetsAnalyzerApp {
 				cursor.close();
 			}
 		}
-
 	}
 
 	private static void initDatabase() throws UnknownHostException {
 		if (mongoClient == null) {
 			mongoClient = new MongoClient();
 		}
-		if (TweetsAnalyzerDB == null) {
-			TweetsAnalyzerDB = mongoClient.getDB("TweetsAnalyzerDatabase");
+		if (tweetsAnalyzerDB == null) {
+			tweetsAnalyzerDB = mongoClient.getDB("TweetsAnalyzerDatabase");
 		}
 		if (statusesColl == null) {
-			statusesColl = TweetsAnalyzerDB.getCollection("statuses");
+			statusesColl = tweetsAnalyzerDB.getCollection("statuses");
 		}
 	}
 
@@ -180,7 +175,7 @@ public class TweetsAnalyzerApp {
 				}
 				break;
 			} catch (IOException e) {
-				e.printStackTrace();
+				// e.printStackTrace();
 			} catch (NumberFormatException e) {
 				System.out.print("Please enter a valid number: ");
 			}
@@ -199,7 +194,7 @@ public class TweetsAnalyzerApp {
 				yesOrNo = shouldExit(bufferRead.readLine().trim());
 				shouldExit(yesOrNo);
 			} catch (IOException e) {
-				e.printStackTrace();
+				// e.printStackTrace();
 			}
 
 			if (yesOrNo.equalsIgnoreCase("yes")
@@ -220,7 +215,7 @@ public class TweetsAnalyzerApp {
 					new InputStreamReader(System.in));
 			name = shouldExit(bufferRead.readLine().trim().split("\\s")[0]);
 		} catch (IOException e) {
-			e.printStackTrace();
+			// e.printStackTrace();
 		}
 		return name;
 	}
